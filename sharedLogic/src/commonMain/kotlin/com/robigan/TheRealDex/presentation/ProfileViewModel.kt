@@ -85,7 +85,12 @@ class ProfileViewModel(
             sources = SourceProvider.entries.filter { it in s.sources }.map { p ->
                 when (p) {
                     SourceProvider.GMAIL -> "Gmail · ${DateText.plural(counts[InteractionOrigin.GMAIL] ?: 0, "thread")}"
-                    SourceProvider.CALENDAR -> "Calendar · ${DateText.plural(counts[InteractionOrigin.CALENDAR] ?: 0, "event")}"
+                    SourceProvider.CALENDAR -> "Calendar · ${
+                        DateText.plural(
+                            counts[InteractionOrigin.CALENDAR] ?: 0, "event"
+                        )
+                    }"
+
                     else -> p.shortLabel
                 }
             },
@@ -95,12 +100,16 @@ class ProfileViewModel(
     private fun keepInTouch(s: ContactSummary, interactions: List<Interaction>, today: LocalDate): KeepInTouchCard {
         val cadence = s.effectiveCadence
         val last = interactions.firstOrNull { !(it.origin == InteractionOrigin.CALENDAR && it.note.isBlank()) }
-        val lastLabel = last?.let { "Last: ${it.type.label.lowercase()}, ${DateText.dayMonth(it.date, today)}" } ?: "No interactions yet"
-        val source = if (s.contact.cadence == null && cadence != null) s.groups.firstOrNull { it.cadence == cadence }?.let { "From ${it.name}" } else null
+        val lastLabel = last?.let { "Last: ${it.type.label.lowercase()}, ${DateText.dayMonth(it.date, today)}" }
+            ?: "No interactions yet"
+        val source = if (s.contact.cadence == null && cadence != null) s.groups.firstOrNull { it.cadence == cadence }
+            ?.let { "From ${it.name}" } else null
         val due = s.due
         if (cadence == null || cadence == Cadence.NEVER || due == null) {
             val status = if (cadence == Cadence.NEVER) "Reminders off" else "No reminder set"
-            return KeepInTouchCard(cadence, cadence?.label ?: "Not set", source, lastLabel, status, false, 0.0, "$lastLabel. $status")
+            return KeepInTouchCard(
+                cadence, cadence?.label ?: "Not set", source, lastLabel, status, false, 0.0, "$lastLabel. $status"
+            )
         }
         val start = s.lastInteraction ?: s.contact.createdOn
         val total = start.daysUntil(due).coerceAtLeast(1)
@@ -127,7 +136,8 @@ class ProfileViewModel(
             c.birthday?.let { Fact("Birthday", DateText.birthday(it.month, it.day, it.year)) },
             c.family?.let { Fact("Family", it) },
             s.giftIdeas.takeIf { it.isNotEmpty() }?.let { Fact("Gift ideas", it.joinToString(" · ")) },
-            listOfNotNull(c.company, c.workHistory).takeIf { it.isNotEmpty() }?.let { Fact("Work history", it.joinToString(" · ")) },
+            listOfNotNull(c.company, c.workHistory).takeIf { it.isNotEmpty() }
+                ?.let { Fact("Work history", it.joinToString(" · ")) },
             c.email?.let { Fact("Email", it) },
             c.phone?.let { Fact("Phone", it) },
             s.tags.takeIf { it.isNotEmpty() }?.let { Fact("Tags", it.sorted().joinToString(", ")) },

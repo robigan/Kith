@@ -56,7 +56,8 @@ class DexRepository(
         }
         val last = db.interactionQueries.selectLastPerContact().asFlow().mapToList(io)
         val sources = db.sourceQueries.selectAllContactSources().asFlow().mapToList(io)
-        val signals = db.signalQueries.selectAll().asFlow().mapToList(io).map { rows -> rows.mapNotNull { it.toModel() } }
+        val signals =
+            db.signalQueries.selectAll().asFlow().mapToList(io).map { rows -> rows.mapNotNull { it.toModel() } }
         val dismissed = db.signalQueries.selectDismissed().asFlow().mapToList(io).map { it.toSet() }
         val views = db.smartViewQueries.selectAll().asFlow().mapToList(io).map { rows -> rows.map { it.toModel() } }
         val connections = db.sourceQueries.selectConnections().asFlow().mapToList(io).map { rows ->
@@ -66,31 +67,32 @@ class DexRepository(
             }
         }
 
-        val people = combine(contacts, tags, gifts, groups, combine(last, sources) { l, s -> l to s }) { c, t, g, gr, (l, s) ->
-            val tagsBy = t.groupBy({ it.contactId }, { it.tag })
-            val giftsBy = g.groupBy({ it.contactId }, { it.text })
-            val groupsBy = HashMap<String, MutableList<PeopleGroup>>()
-            gr.forEach { group -> group.memberIds.forEach { groupsBy.getOrPut(it) { mutableListOf() }.add(group) } }
-            val lastBy = l.associate { it.contactId to it.lastDate.toDate() }
-            val sourcesBy = s.groupBy({ it.contactId }, { SourceProvider.fromName(it.provider) })
-            val list = c.map { row ->
-                val contact = row.toModel()
-                val contactGroups = groupsBy[contact.id].orEmpty()
-                val cadence = Cadences.effective(contact, contactGroups)
-                val lastDate = lastBy[contact.id]
-                ContactSummary(
-                    contact = contact,
-                    tags = tagsBy[contact.id].orEmpty().toSet(),
-                    groups = contactGroups,
-                    giftIdeas = giftsBy[contact.id].orEmpty(),
-                    sources = sourcesBy[contact.id].orEmpty().filterNotNull().toSet(),
-                    lastInteraction = lastDate,
-                    effectiveCadence = cadence,
-                    due = Cadences.dueDate(cadence, lastDate, contact.createdOn, contact.dueOverride),
-                )
+        val people =
+            combine(contacts, tags, gifts, groups, combine(last, sources) { l, s -> l to s }) { c, t, g, gr, (l, s) ->
+                val tagsBy = t.groupBy({ it.contactId }, { it.tag })
+                val giftsBy = g.groupBy({ it.contactId }, { it.text })
+                val groupsBy = HashMap<String, MutableList<PeopleGroup>>()
+                gr.forEach { group -> group.memberIds.forEach { groupsBy.getOrPut(it) { mutableListOf() }.add(group) } }
+                val lastBy = l.associate { it.contactId to it.lastDate.toDate() }
+                val sourcesBy = s.groupBy({ it.contactId }, { SourceProvider.fromName(it.provider) })
+                val list = c.map { row ->
+                    val contact = row.toModel()
+                    val contactGroups = groupsBy[contact.id].orEmpty()
+                    val cadence = Cadences.effective(contact, contactGroups)
+                    val lastDate = lastBy[contact.id]
+                    ContactSummary(
+                        contact = contact,
+                        tags = tagsBy[contact.id].orEmpty().toSet(),
+                        groups = contactGroups,
+                        giftIdeas = giftsBy[contact.id].orEmpty(),
+                        sources = sourcesBy[contact.id].orEmpty().filterNotNull().toSet(),
+                        lastInteraction = lastDate,
+                        effectiveCadence = cadence,
+                        due = Cadences.dueDate(cadence, lastDate, contact.createdOn, contact.dueOverride),
+                    )
+                }
+                list to gr
             }
-            list to gr
-        }
         return combine(people, signals, dismissed, views, connections) { (list, gr), sig, dis, v, conn ->
             Snapshot(list, gr, sig, dis, v, conn)
         }
@@ -100,11 +102,13 @@ class DexRepository(
         db.contactQueries.selectById(id).asFlow().mapToOneOrNull(io).map { it?.toModel() }
 
     fun interactionsFor(contactId: String): Flow<List<Interaction>> =
-        db.interactionQueries.selectForContact(contactId).asFlow().mapToList(io).map { rows -> rows.map { it.toModel(emptyList()) } }
+        db.interactionQueries.selectForContact(contactId).asFlow().mapToList(io)
+            .map { rows -> rows.map { it.toModel(emptyList()) } }
 
     /** Imported meetings in [from]..[to] that still need a note, with their participants. */
     fun unnotedMeetings(from: LocalDate, to: LocalDate): Flow<List<Interaction>> = combine(
-        db.interactionQueries.selectUnnotedSince(InteractionOrigin.CALENDAR.name, from.toDb(), to.toDb()).asFlow().mapToList(io),
+        db.interactionQueries.selectUnnotedSince(InteractionOrigin.CALENDAR.name, from.toDb(), to.toDb()).asFlow()
+            .mapToList(io),
         db.interactionQueries.selectAllParticipants().asFlow().mapToList(io),
     ) { rows, participants ->
         val byInteraction = participants.groupBy({ it.interactionId }, { it.contactId })
@@ -123,7 +127,9 @@ class DexRepository(
 
     fun sourceCountsFor(contactId: String): Flow<Map<InteractionOrigin, Int>> =
         db.interactionQueries.countByOriginForContact(contactId).asFlow().mapToList(io).map { rows ->
-            rows.mapNotNull { r -> InteractionOrigin.entries.firstOrNull { it.name == r.origin }?.let { it to r.total.toInt() } }.toMap()
+            rows.mapNotNull { r ->
+                InteractionOrigin.entries.firstOrNull { it.name == r.origin }?.let { it to r.total.toInt() }
+            }.toMap()
         }
 
     /** Contacts whose interaction notes or titles contain [query]. */
@@ -160,7 +166,8 @@ class DexRepository(
             cadence = c.cadence,
             tags = db.contactQueries.selectTags(id).executeAsList(),
             giftIdeas = db.contactQueries.selectGifts(id).executeAsList().map { it.text },
-            groupIds = db.groupQueries.selectAllMembers().executeAsList().filter { it.contactId == id }.map { it.groupId },
+            groupIds = db.groupQueries.selectAllMembers().executeAsList().filter { it.contactId == id }
+                .map { it.groupId },
             starred = c.starred,
         )
     }
@@ -174,10 +181,26 @@ class DexRepository(
         db.transaction {
             db.contactQueries.insert(
                 ContactRecord(
-                    id = id, name = input.name.trim(), role = null, company = null, location = null, relationship = null,
-                    howWeMet = null, metOn = null, family = null, birthdayMonth = null, birthdayDay = null, birthdayYear = null,
-                    workHistory = null, email = null, phone = null, tint = Tint.forName(input.name).name,
-                    starred = input.starred.toDb(), cadence = null, dueOverride = null, createdOn = dates.today().toDb(),
+                    id = id,
+                    name = input.name.trim(),
+                    role = null,
+                    company = null,
+                    location = null,
+                    relationship = null,
+                    howWeMet = null,
+                    metOn = null,
+                    family = null,
+                    birthdayMonth = null,
+                    birthdayDay = null,
+                    birthdayYear = null,
+                    workHistory = null,
+                    email = null,
+                    phone = null,
+                    tint = Tint.forName(input.name).name,
+                    starred = input.starred.toDb(),
+                    cadence = null,
+                    dueOverride = null,
+                    createdOn = dates.today().toDb(),
                 )
             )
             writeContactFields(id, input)
@@ -212,7 +235,8 @@ class DexRepository(
         )
         db.contactQueries.setStarred(input.starred.toDb(), id)
         db.contactQueries.deleteTags(id)
-        input.tags.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.distinct().forEach { db.contactQueries.insertTag(id, it) }
+        input.tags.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.distinct()
+            .forEach { db.contactQueries.insertTag(id, it) }
         db.contactQueries.deleteGifts(id)
         input.giftIdeas.map { it.trim() }.filter { it.isNotEmpty() }.forEachIndexed { i, text ->
             db.contactQueries.insertGift(newId(), id, text, i.toLong())
@@ -221,9 +245,10 @@ class DexRepository(
         input.groupIds.forEach { db.groupQueries.insertMember(it, id) }
     }
 
-    suspend fun addImportantDate(contactId: String, label: String, month: Int, day: Int, year: Int?): Unit = withContext(io) {
-        db.contactQueries.insertDate(newId(), contactId, label, month.toLong(), day.toLong(), year?.toLong())
-    }
+    suspend fun addImportantDate(contactId: String, label: String, month: Int, day: Int, year: Int?): Unit =
+        withContext(io) {
+            db.contactQueries.insertDate(newId(), contactId, label, month.toLong(), day.toLong(), year?.toLong())
+        }
 
     suspend fun deleteContact(id: String): Unit = withContext(io) {
         db.transaction {
@@ -262,7 +287,12 @@ class DexRepository(
             c.workHistory.isNullOrBlank() -> previous
             else -> "$previous · ${c.workHistory}"
         }
-        db.contactQueries.updateRole(role ?: c.role.takeIf { c.company.equals(company, ignoreCase = true) }, company, history, contactId)
+        db.contactQueries.updateRole(
+            role ?: c.role.takeIf { c.company.equals(company, ignoreCase = true) },
+            company,
+            history,
+            contactId
+        )
     }
 
     // endregion
@@ -279,8 +309,15 @@ class DexRepository(
             } else {
                 db.interactionQueries.insert(
                     InteractionRecord(
-                        id = id, type = input.type.name, date = input.epochDay, title = null, note = input.note.trim(),
-                        origin = InteractionOrigin.MANUAL.name, externalId = null, location = null, durationMinutes = null,
+                        id = id,
+                        type = input.type.name,
+                        date = input.epochDay,
+                        title = null,
+                        note = input.note.trim(),
+                        origin = InteractionOrigin.MANUAL.name,
+                        externalId = null,
+                        location = null,
+                        durationMinutes = null,
                         createdAt = dates.nowMillis(),
                     )
                 )
@@ -299,7 +336,9 @@ class DexRepository(
 
     private fun applyNextReminder(contactId: String, date: LocalDate, next: Cadence) {
         val contact = db.contactQueries.selectById(contactId).executeAsOneOrNull()?.toModel() ?: return
-        val groups = db.groupQueries.selectAllMembers().executeAsList().filter { it.contactId == contactId }.map { it.groupId }.toSet()
+        val groups =
+            db.groupQueries.selectAllMembers().executeAsList().filter { it.contactId == contactId }.map { it.groupId }
+                .toSet()
         val effective = Cadences.effective(
             contact,
             db.groupQueries.selectAll().executeAsList().filter { it.id in groups }
@@ -352,13 +391,21 @@ class DexRepository(
         db.contactQueries.setDueOverride(LocalDate.fromEpochDays(base).plus(DatePeriod(days = days)).toDb(), contactId)
     }
 
-    suspend fun setFollowUpDone(id: String, done: Boolean): Unit = withContext(io) { db.interactionQueries.setFollowUpDone(done.toDb(), id) }
+    suspend fun setFollowUpDone(id: String, done: Boolean): Unit =
+        withContext(io) { db.interactionQueries.setFollowUpDone(done.toDb(), id) }
 
     suspend fun deleteFollowUp(id: String): Unit = withContext(io) { db.interactionQueries.deleteFollowUp(id) }
 
     suspend fun dismissSignal(key: String): Unit = withContext(io) { db.signalQueries.dismiss(key) }
 
-    internal fun addSignalTx(type: SignalType, contactId: String, date: LocalDate, text: String, source: SourceProvider?, key: String): Boolean {
+    internal fun addSignalTx(
+        type: SignalType,
+        contactId: String,
+        date: LocalDate,
+        text: String,
+        source: SourceProvider?,
+        key: String
+    ): Boolean {
         return db.signalQueries.insert(newId(), type.name, contactId, date.toDb(), text, source?.name, key).value > 0
     }
 
@@ -383,7 +430,8 @@ class DexRepository(
         db.transaction { contactIds.forEach { db.groupQueries.insertMember(groupId, it) } }
     }
 
-    suspend fun removeMember(groupId: String, contactId: String): Unit = withContext(io) { db.groupQueries.deleteMember(groupId, contactId) }
+    suspend fun removeMember(groupId: String, contactId: String): Unit =
+        withContext(io) { db.groupQueries.deleteMember(groupId, contactId) }
 
     suspend fun deleteGroup(id: String): Unit = withContext(io) {
         db.transaction {
@@ -411,16 +459,26 @@ class DexRepository(
                 )
             } else {
                 db.smartViewQueries.update(
-                    input.name.trim(), input.code.trim().uppercase().take(4), input.tint.name, input.tag, input.groupId,
-                    input.minDaysSinceContact?.toLong(), input.location, input.source?.name, input.birthdayThisMonth.toDb(),
-                    input.changedJobsWithinDays?.toLong(), input.metContext, viewId,
+                    input.name.trim(),
+                    input.code.trim().uppercase().take(4),
+                    input.tint.name,
+                    input.tag,
+                    input.groupId,
+                    input.minDaysSinceContact?.toLong(),
+                    input.location,
+                    input.source?.name,
+                    input.birthdayThisMonth.toDb(),
+                    input.changedJobsWithinDays?.toLong(),
+                    input.metContext,
+                    viewId,
                 )
             }
         }
         viewId
     }
 
-    suspend fun smartView(id: String): SmartView? = withContext(io) { db.smartViewQueries.selectById(id).executeAsOneOrNull()?.toModel() }
+    suspend fun smartView(id: String): SmartView? =
+        withContext(io) { db.smartViewQueries.selectById(id).executeAsOneOrNull()?.toModel() }
 
     suspend fun deleteSmartView(id: String): Unit = withContext(io) { db.smartViewQueries.delete(id) }
 
@@ -432,7 +490,8 @@ class DexRepository(
     suspend fun ensureDefaults(): Unit = withContext(io) {
         db.transaction {
             val existing = db.sourceQueries.selectConnections().executeAsList().map { it.provider }.toSet()
-            SourceProvider.entries.filter { it.name !in existing }.forEach { db.sourceQueries.upsertConnection(it.name, 0, null) }
+            SourceProvider.entries.filter { it.name !in existing }
+                .forEach { db.sourceQueries.upsertConnection(it.name, 0, null) }
             if (db.settingQueries.select(DEFAULTS_KEY).executeAsOneOrNull() == null) {
                 db.settingQueries.put(DEFAULTS_KEY, "1")
                 insertView("Not talked in 90+ days", "90D", Tint.PEACH, minDays = 90)

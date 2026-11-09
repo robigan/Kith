@@ -39,7 +39,14 @@ val viewModelModule = module {
     factoryOf(::GroupsViewModel)
     factoryOf(::ContactEditorViewModel)
     factory { (contactId: String) -> ProfileViewModel(contactId, get(), get()) }
-    factory { (contactIds: List<String>, interactionId: String?) -> LogInteractionViewModel(contactIds, interactionId, get(), get()) }
+    factory { (contactIds: List<String>, interactionId: String?) ->
+        LogInteractionViewModel(
+            contactIds,
+            interactionId,
+            get(),
+            get()
+        )
+    }
     factory { (groupId: String) -> GroupDetailViewModel(groupId, get(), get()) }
     factory { (viewId: String) -> SmartViewViewModel(viewId, get(), get()) }
 }

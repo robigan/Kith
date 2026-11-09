@@ -34,19 +34,35 @@ class SourceSync(
         var updated = 0
         db.transaction {
             contacts.filter { it.name.isNotBlank() }.forEach { imported ->
-                val existing = match(SourceProvider.CONTACTS, imported.externalId, imported.email, imported.phone, imported.name)
+                val existing =
+                    match(SourceProvider.CONTACTS, imported.externalId, imported.email, imported.phone, imported.name)
                 val id = if (existing == null) {
                     created++
-                    insertContact(imported.name, imported.role, imported.company, imported.email, imported.phone).also { id ->
+                    insertContact(
+                        imported.name,
+                        imported.role,
+                        imported.company,
+                        imported.email,
+                        imported.phone
+                    ).also { id ->
                         if (imported.birthdayMonth > 0 && imported.birthdayDay > 0) setBirthday(id, imported)
                     }
                 } else {
                     updated++
                     fillMissing(existing, imported.role, imported.company, imported.email, imported.phone)
-                    if (existing.birthdayMonth == null && imported.birthdayMonth > 0 && imported.birthdayDay > 0) setBirthday(existing.id, imported)
+                    if (existing.birthdayMonth == null && imported.birthdayMonth > 0 && imported.birthdayDay > 0) setBirthday(
+                        existing.id,
+                        imported
+                    )
                     existing.id
                 }
-                db.sourceQueries.upsertContactSource(id, SourceProvider.CONTACTS.name, imported.externalId, imported.role, imported.company)
+                db.sourceQueries.upsertContactSource(
+                    id,
+                    SourceProvider.CONTACTS.name,
+                    imported.externalId,
+                    imported.role,
+                    imported.company
+                )
             }
             markSynced(SourceProvider.CONTACTS)
         }
@@ -72,26 +88,45 @@ class SourceSync(
                 val existing = db.interactionQueries.selectByExternalId(event.externalId).executeAsOneOrNull()
                 val id = if (existing != null) {
                     updated++
-                    db.interactionQueries.updateImported(event.title, date, event.location, event.durationMinutes.toLong(), existing.id)
+                    db.interactionQueries.updateImported(
+                        event.title,
+                        date,
+                        event.location,
+                        event.durationMinutes.toLong(),
+                        existing.id
+                    )
                     existing.id
                 } else {
                     created++
                     repository.newId().also { id ->
                         db.interactionQueries.insert(
                             InteractionRecord(
-                                id = id, type = InteractionType.MEETING.name, date = date, title = event.title, note = "",
-                                origin = InteractionOrigin.CALENDAR.name, externalId = event.externalId,
-                                location = event.location, durationMinutes = event.durationMinutes.toLong(), createdAt = now,
+                                id = id,
+                                type = InteractionType.MEETING.name,
+                                date = date,
+                                title = event.title,
+                                note = "",
+                                origin = InteractionOrigin.CALENDAR.name,
+                                externalId = event.externalId,
+                                location = event.location,
+                                durationMinutes = event.durationMinutes.toLong(),
+                                createdAt = now,
                             )
                         )
                     }
                 }
                 people.forEach { person ->
-                    val previousLast = db.interactionQueries.selectLatestForContact(person.id).executeAsOneOrNull()?.date
+                    val previousLast =
+                        db.interactionQueries.selectLatestForContact(person.id).executeAsOneOrNull()?.date
                     db.interactionQueries.insertParticipant(id, person.id)
                     // A newer meeting supersedes any snooze or custom reminder.
-                    if (existing == null && (previousLast == null || date > previousLast)) db.contactQueries.setDueOverride(null, person.id)
-                    if (db.sourceQueries.selectForContactAndProvider(person.id, SourceProvider.CALENDAR.name).executeAsOneOrNull() == null) {
+                    if (existing == null && (previousLast == null || date > previousLast)) db.contactQueries.setDueOverride(
+                        null,
+                        person.id
+                    )
+                    if (db.sourceQueries.selectForContactAndProvider(person.id, SourceProvider.CALENDAR.name)
+                            .executeAsOneOrNull() == null
+                    ) {
                         db.sourceQueries.upsertContactSource(person.id, SourceProvider.CALENDAR.name, null, null, null)
                     }
                 }
@@ -123,26 +158,46 @@ class SourceSync(
                             conn.connectedOn.toDb(), null, null, null, null, null, conn.email, null, null, id,
                         )
                     }
-                    db.sourceQueries.upsertContactSource(id, SourceProvider.LINKEDIN.name, conn.url, conn.position, conn.company)
+                    db.sourceQueries.upsertContactSource(
+                        id,
+                        SourceProvider.LINKEDIN.name,
+                        conn.url,
+                        conn.position,
+                        conn.company
+                    )
                     return@forEach
                 }
                 updated++
-                val link = db.sourceQueries.selectForContactAndProvider(existing.id, SourceProvider.LINKEDIN.name).executeAsOneOrNull()
+                val link = db.sourceQueries.selectForContactAndProvider(existing.id, SourceProvider.LINKEDIN.name)
+                    .executeAsOneOrNull()
                 val company = conn.company
                 val changed = link != null && company != null &&
-                    (!conn.company.equals(link.lastCompany, ignoreCase = true) || !conn.position.equals(link.lastRole, ignoreCase = true))
+                        (!conn.company.equals(
+                            link.lastCompany,
+                            ignoreCase = true
+                        ) || !conn.position.equals(link.lastRole, ignoreCase = true))
                 if (changed) {
                     repository.applyRoleChangeTx(existing.id, conn.position, company)
                     val role = conn.position?.let { "$it at $company" } ?: "at $company"
                     val added = repository.addSignalTx(
-                        SignalType.NEW_ROLE, existing.id, today, "${existing.name} is now $role.", SourceProvider.LINKEDIN,
+                        SignalType.NEW_ROLE,
+                        existing.id,
+                        today,
+                        "${existing.name} is now $role.",
+                        SourceProvider.LINKEDIN,
                         "linkedin:${conn.url ?: existing.id}:${conn.position}@$company",
                     )
                     if (added) signals++
                 } else {
                     fillMissing(existing, conn.position, conn.company, conn.email, null)
                 }
-                db.sourceQueries.upsertContactSource(existing.id, SourceProvider.LINKEDIN.name, conn.url, conn.position, conn.company)
+                db.sourceQueries.upsertContactSource(
+                    existing.id,
+                    SourceProvider.LINKEDIN.name,
+                    conn.url,
+                    conn.position,
+                    conn.company
+                )
             }
             markSynced(SourceProvider.LINKEDIN)
         }
@@ -159,14 +214,22 @@ class SourceSync(
         db.sourceQueries.upsertConnection(provider.name, 1, dates.nowMillis())
     }
 
-    private fun match(provider: SourceProvider, externalId: String?, email: String?, phone: String?, name: String): ContactRecord? {
+    private fun match(
+        provider: SourceProvider,
+        externalId: String?,
+        email: String?,
+        phone: String?,
+        name: String
+    ): ContactRecord? {
         externalId?.let { ext ->
             db.sourceQueries.selectByExternalId(provider.name, ext).executeAsOneOrNull()?.let { link ->
                 db.contactQueries.selectById(link.contactId).executeAsOneOrNull()?.let { return it }
             }
         }
-        email?.takeIf { it.isNotBlank() }?.let { e -> db.contactQueries.selectByEmail(e).executeAsOneOrNull()?.let { return it } }
-        phone?.takeIf { it.isNotBlank() }?.let { p -> db.contactQueries.selectByPhone(p).executeAsOneOrNull()?.let { return it } }
+        email?.takeIf { it.isNotBlank() }
+            ?.let { e -> db.contactQueries.selectByEmail(e).executeAsOneOrNull()?.let { return it } }
+        phone?.takeIf { it.isNotBlank() }
+            ?.let { p -> db.contactQueries.selectByPhone(p).executeAsOneOrNull()?.let { return it } }
         return name.takeIf { it.isNotBlank() }?.let { db.contactQueries.selectByName(it.trim()).executeAsOneOrNull() }
     }
 
@@ -174,10 +237,26 @@ class SourceSync(
         val id = repository.newId()
         db.contactQueries.insert(
             ContactRecord(
-                id = id, name = name.trim(), role = role, company = company, location = null, relationship = null,
-                howWeMet = null, metOn = null, family = null, birthdayMonth = null, birthdayDay = null, birthdayYear = null,
-                workHistory = null, email = email, phone = phone, tint = Tint.forName(name).name, starred = 0,
-                cadence = null, dueOverride = null, createdOn = dates.today().toDb(),
+                id = id,
+                name = name.trim(),
+                role = role,
+                company = company,
+                location = null,
+                relationship = null,
+                howWeMet = null,
+                metOn = null,
+                family = null,
+                birthdayMonth = null,
+                birthdayDay = null,
+                birthdayYear = null,
+                workHistory = null,
+                email = email,
+                phone = phone,
+                tint = Tint.forName(name).name,
+                starred = 0,
+                cadence = null,
+                dueOverride = null,
+                createdOn = dates.today().toDb(),
             )
         )
         return id
@@ -185,17 +264,44 @@ class SourceSync(
 
     private fun fillMissing(c: ContactRecord, role: String?, company: String?, email: String?, phone: String?) {
         db.contactQueries.update(
-            c.name, c.role ?: role, c.company ?: company, c.location, c.relationship, c.howWeMet, c.metOn, c.family,
-            c.birthdayMonth, c.birthdayDay, c.birthdayYear, c.workHistory, c.email ?: email, c.phone ?: phone, c.cadence, c.id,
+            c.name,
+            c.role ?: role,
+            c.company ?: company,
+            c.location,
+            c.relationship,
+            c.howWeMet,
+            c.metOn,
+            c.family,
+            c.birthdayMonth,
+            c.birthdayDay,
+            c.birthdayYear,
+            c.workHistory,
+            c.email ?: email,
+            c.phone ?: phone,
+            c.cadence,
+            c.id,
         )
     }
 
     private fun setBirthday(id: String, imported: ImportedContact) {
         val c = db.contactQueries.selectById(id).executeAsOne()
         db.contactQueries.update(
-            c.name, c.role, c.company, c.location, c.relationship, c.howWeMet, c.metOn, c.family,
-            imported.birthdayMonth.toLong(), imported.birthdayDay.toLong(), imported.birthdayYear.takeIf { it > 0 }?.toLong(),
-            c.workHistory, c.email, c.phone, c.cadence, c.id,
+            c.name,
+            c.role,
+            c.company,
+            c.location,
+            c.relationship,
+            c.howWeMet,
+            c.metOn,
+            c.family,
+            imported.birthdayMonth.toLong(),
+            imported.birthdayDay.toLong(),
+            imported.birthdayYear.takeIf { it > 0 }?.toLong(),
+            c.workHistory,
+            c.email,
+            c.phone,
+            c.cadence,
+            c.id,
         )
     }
 }

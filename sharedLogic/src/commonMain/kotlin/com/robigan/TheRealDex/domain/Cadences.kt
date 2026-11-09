@@ -19,7 +19,12 @@ object Cadences {
      * Due = last interaction + cadence (FR-003), unless a snooze or a chosen next reminder overrides it.
      * A contact with a cadence but no interactions yet is measured from when they were added.
      */
-    fun dueDate(cadence: Cadence?, lastInteraction: LocalDate?, createdOn: LocalDate, override: LocalDate?): LocalDate? {
+    fun dueDate(
+        cadence: Cadence?,
+        lastInteraction: LocalDate?,
+        createdOn: LocalDate,
+        override: LocalDate?
+    ): LocalDate? {
         val period = cadence?.period ?: return null
         override?.let { return it }
         return (lastInteraction ?: createdOn).plus(period)

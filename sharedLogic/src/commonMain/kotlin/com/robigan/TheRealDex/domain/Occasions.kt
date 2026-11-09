@@ -13,7 +13,8 @@ object Occasions {
 
     fun nextBirthday(b: Birthday, from: LocalDate): LocalDate = nextOccurrence(b.month, b.day, from)
 
-    fun nextAnniversary(metOn: LocalDate, from: LocalDate): LocalDate = nextOccurrence(metOn.month.number, metOn.day, from)
+    fun nextAnniversary(metOn: LocalDate, from: LocalDate): LocalDate =
+        nextOccurrence(metOn.month.number, metOn.day, from)
 
     private fun onYear(year: Int, month: Int, day: Int): LocalDate =
         if (month == 2 && day == 29 && !isLeap(year)) LocalDate(year, 2, 28) else LocalDate(year, month, day)

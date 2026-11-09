@@ -28,7 +28,15 @@ object People {
     fun matchesQuery(s: ContactSummary, query: String, noteMatches: Set<String>): Boolean {
         if (query.isBlank()) return true
         val c = s.contact
-        return s.contact.id in noteMatches || listOfNotNull(c.name, c.role, c.company, c.location, c.relationship, c.howWeMet, c.email)
+        return s.contact.id in noteMatches || listOfNotNull(
+            c.name,
+            c.role,
+            c.company,
+            c.location,
+            c.relationship,
+            c.howWeMet,
+            c.email
+        )
             .any { it.contains(query.trim(), ignoreCase = true) }
     }
 
@@ -38,7 +46,9 @@ object People {
         c.birthday?.let { b ->
             val next = Occasions.nextBirthday(b, today)
             val days = today.daysUntil(next)
-            if (days in 0..6) return "Birthday ${DateText.relativeDay(next, today).let { if (days > 1) it else it.lowercase() }}"
+            if (days in 0..6) return "Birthday ${
+                DateText.relativeDay(next, today).let { if (days > 1) it else it.lowercase() }
+            }"
         }
         c.roleLine?.let { return it }
         val context = c.relationship ?: c.howWeMet

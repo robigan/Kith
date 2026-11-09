@@ -25,13 +25,25 @@ object LinkedInCsv {
         if (headerIndex < 0) return emptyList()
         val header = rows[headerIndex].map { it.trim().lowercase() }
         fun col(name: String) = header.indexOf(name)
-        val first = col("first name"); val last = col("last name"); val url = col("url")
-        val email = col("email address"); val company = col("company"); val position = col("position")
+        val first = col("first name");
+        val last = col("last name");
+        val url = col("url")
+        val email = col("email address");
+        val company = col("company");
+        val position = col("position")
         val connected = col("connected on")
         return rows.drop(headerIndex + 1).mapNotNull { row ->
             fun at(i: Int) = row.getOrNull(i)?.trim()?.ifEmpty { null }
             val f = at(first) ?: return@mapNotNull null
-            LinkedInConnection(f, at(last) ?: "", at(url), at(email), at(company), at(position), at(connected)?.let(::parseDate))
+            LinkedInConnection(
+                f,
+                at(last) ?: "",
+                at(url),
+                at(email),
+                at(company),
+                at(position),
+                at(connected)?.let(::parseDate)
+            )
         }
     }
 
@@ -58,15 +70,22 @@ object LinkedInCsv {
         while (i < text.length) {
             val c = text[i]
             when {
-                quoted && c == '"' && text.getOrNull(i + 1) == '"' -> { field.append('"'); i++ }
+                quoted && c == '"' && text.getOrNull(i + 1) == '"' -> {
+                    field.append('"'); i++
+                }
+
                 c == '"' -> quoted = !quoted
-                !quoted && c == ',' -> { row.add(field.toString()); field.clear() }
+                !quoted && c == ',' -> {
+                    row.add(field.toString()); field.clear()
+                }
+
                 !quoted && (c == '\n' || c == '\r') -> {
                     if (c == '\r' && text.getOrNull(i + 1) == '\n') i++
                     row.add(field.toString()); field.clear()
                     if (row.any { it.isNotBlank() }) rows.add(row)
                     row = mutableListOf()
                 }
+
                 else -> field.append(c)
             }
             i++

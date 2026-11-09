@@ -20,7 +20,12 @@ class AppViewModel(
             val due = s.due ?: return@mapNotNull null
             val cadence = s.effectiveCadence ?: return@mapNotNull null
             if (cadence == Cadence.NEVER || due < today) return@mapNotNull null
-            PlannedReminder(s.contact.id, s.contact.name, due.toEpochDays(), "Time to catch up with ${s.contact.firstName} — ${cadence.label.lowercase()}.")
+            PlannedReminder(
+                s.contact.id,
+                s.contact.name,
+                due.toEpochDays(),
+                "Time to catch up with ${s.contact.firstName} — ${cadence.label.lowercase()}."
+            )
         }.sortedBy { it.epochDay }
     }.toState(emptyList())
 

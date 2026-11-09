@@ -123,10 +123,20 @@ data class ProfileState(
 ) {
     companion object {
         fun empty(id: String) = ProfileState(
-            exists = true, id = id, name = "", avatar = Avatar("", Tint.SKY), subtitle = "", chips = emptyList(), starred = false,
-            phone = null, email = null,
+            exists = true,
+            id = id,
+            name = "",
+            avatar = Avatar("", Tint.SKY),
+            subtitle = "",
+            chips = emptyList(),
+            starred = false,
+            phone = null,
+            email = null,
             keepInTouch = KeepInTouchCard(null, "", null, "", "", false, 0.0, ""),
-            timeline = emptyList(), facts = emptyList(), followUps = emptyList(), sources = emptyList(),
+            timeline = emptyList(),
+            facts = emptyList(),
+            followUps = emptyList(),
+            sources = emptyList(),
         )
     }
 }

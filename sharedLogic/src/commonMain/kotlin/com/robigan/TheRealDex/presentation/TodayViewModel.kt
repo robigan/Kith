@@ -30,7 +30,11 @@ class TodayViewModel(private val repository: DexRepository, private val dates: D
     private var openRows: Map<String, Pair<KeepInTouchRow, LocalDate>> = emptyMap()
 
     val state: StateFlow<TodayState> = dates.todayFlow().flatMapLatest { today ->
-        combine(repository.snapshot(), repository.unnotedMeetings(today.minus(DatePeriod(days = NOTE_WINDOW_DAYS)), today), done) { snap, unnoted, doneMap ->
+        combine(
+            repository.snapshot(),
+            repository.unnotedMeetings(today.minus(DatePeriod(days = NOTE_WINDOW_DAYS)), today),
+            done
+        ) { snap, unnoted, doneMap ->
             snapshot = snap
             build(snap, unnoted, doneMap, today)
         }
@@ -48,7 +52,13 @@ class TodayViewModel(private val repository: DexRepository, private val dates: D
         launch {
             val receipt = repository.markDone(contactId)
             val next = summary.effectiveCadence?.nextLabel ?: "later"
-            done.update { it + (contactId to Done(receipt, row.copy(isDone = true, doneLabel = "Logged · next $next"), due)) }
+            done.update {
+                it + (contactId to Done(
+                    receipt,
+                    row.copy(isDone = true, doneLabel = "Logged · next $next"),
+                    due
+                ))
+            }
         }
     }
 
@@ -70,7 +80,12 @@ class TodayViewModel(private val repository: DexRepository, private val dates: D
 
     fun dismissNeedsNote(interactionId: String) = launch { repository.dismissSignal(noteKey(interactionId)) }
 
-    private fun build(snap: Snapshot, unnoted: List<Interaction>, doneMap: Map<String, Done>, today: LocalDate): TodayState {
+    private fun build(
+        snap: Snapshot,
+        unnoted: List<Interaction>,
+        doneMap: Map<String, Done>,
+        today: LocalDate
+    ): TodayState {
         val window = today.plus(DatePeriod(days = DUE_WINDOW_DAYS))
         val open = snap.people
             .filter { it.contact.id !in doneMap && it.effectiveCadence != Cadence.NEVER && it.due != null && it.due <= window }
@@ -85,7 +100,8 @@ class TodayViewModel(private val repository: DexRepository, private val dates: D
             rows = rows,
             dueLabel = if (openCount == 0) "All caught up" else "$openCount due",
             reasons = reasons(snap, today),
-            needsNote = unnoted.filter { noteKey(it.id) !in snap.dismissed && it.participantIds.isNotEmpty() }.map { needsNote(it) },
+            needsNote = unnoted.filter { noteKey(it.id) !in snap.dismissed && it.participantIds.isNotEmpty() }
+                .map { needsNote(it) },
             hasPeople = snap.people.isNotEmpty(),
             isLoading = false,
         )
@@ -111,18 +127,28 @@ class TodayViewModel(private val repository: DexRepository, private val dates: D
             if (key in snap.dismissed) return@mapNotNull null
             val name = s.contact.name
             val main = b.year?.let { "$name turns ${next.year - it}." } ?: "It's $name's birthday."
-            val gift = s.giftIdeas.firstOrNull()?.let { " Gift idea saved: ${it.replaceFirstChar(Char::lowercaseChar)}." } ?: ""
-            next to ReasonCard(key, SignalType.BIRTHDAY, s.contact.id, s.avatar(), "Birthday · ${DateText.relativeDay(next, today)}", main + gift)
+            val gift =
+                s.giftIdeas.firstOrNull()?.let { " Gift idea saved: ${it.replaceFirstChar(Char::lowercaseChar)}." }
+                    ?: ""
+            next to ReasonCard(
+                key,
+                SignalType.BIRTHDAY,
+                s.contact.id,
+                s.avatar(),
+                "Birthday · ${DateText.relativeDay(next, today)}",
+                main + gift
+            )
         }.sortedBy { it.first }.map { it.second }
 
-        val roles = snap.signals.filter { it.type == SignalType.NEW_ROLE && it.date.daysUntil(today) <= ROLE_SIGNAL_DAYS }
-            .mapNotNull { sig ->
-                val s = snap.byId[sig.contactId] ?: return@mapNotNull null
-                val key = "signal:${sig.id}"
-                if (key in snap.dismissed) return@mapNotNull null
-                val label = sig.source?.let { "New role · ${it.label}" } ?: "New role"
-                ReasonCard(key, SignalType.NEW_ROLE, s.contact.id, s.avatar(), label, sig.text)
-            }
+        val roles =
+            snap.signals.filter { it.type == SignalType.NEW_ROLE && it.date.daysUntil(today) <= ROLE_SIGNAL_DAYS }
+                .mapNotNull { sig ->
+                    val s = snap.byId[sig.contactId] ?: return@mapNotNull null
+                    val key = "signal:${sig.id}"
+                    if (key in snap.dismissed) return@mapNotNull null
+                    val label = sig.source?.let { "New role · ${it.label}" } ?: "New role"
+                    ReasonCard(key, SignalType.NEW_ROLE, s.contact.id, s.avatar(), label, sig.text)
+                }
 
         val anniversaries = snap.people.mapNotNull { s ->
             val met = s.contact.metOn ?: return@mapNotNull null
@@ -132,7 +158,12 @@ class TodayViewModel(private val repository: DexRepository, private val dates: D
             if (years < 1 || days > SOON_DAYS) return@mapNotNull null
             val key = "met:${s.contact.id}:${next.year}"
             if (key in snap.dismissed) return@mapNotNull null
-            val label = "Met ${DateText.plural(years, "year")} ago" + if (days == 0) "" else " · ${DateText.relativeDay(next, today)}"
+            val label = "Met ${DateText.plural(years, "year")} ago" + if (days == 0) "" else " · ${
+                DateText.relativeDay(
+                    next,
+                    today
+                )
+            }"
             val how = s.contact.howWeMet?.let { " — ${it.replaceFirstChar(Char::lowercaseChar)}." } ?: "."
             next to ReasonCard(key, SignalType.MET_ANNIVERSARY, s.contact.id, s.avatar(), label, s.contact.name + how)
         }.sortedBy { it.first }.map { it.second }

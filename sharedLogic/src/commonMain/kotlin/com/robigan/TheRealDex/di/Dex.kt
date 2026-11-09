@@ -36,7 +36,9 @@ object Dex : KoinComponent {
     fun groups(): GroupsViewModel = get()
     fun editor(): ContactEditorViewModel = get()
     fun profile(contactId: String): ProfileViewModel = get { parametersOf(contactId) }
-    fun log(contactIds: List<String>, interactionId: String?): LogInteractionViewModel = get { parametersOf(contactIds, interactionId) }
+    fun log(contactIds: List<String>, interactionId: String?): LogInteractionViewModel =
+        get { parametersOf(contactIds, interactionId) }
+
     fun group(groupId: String): GroupDetailViewModel = get { parametersOf(groupId) }
     fun smartView(viewId: String): SmartViewViewModel = get { parametersOf(viewId) }
 }

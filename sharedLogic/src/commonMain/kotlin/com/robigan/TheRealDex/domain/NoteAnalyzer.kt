@@ -19,13 +19,13 @@ object NoteAnalyzer {
 
     private val rolePatterns: List<Pair<Regex, (MatchResult) -> Pair<String?, String>>> = listOf(
         Regex("(?:took|accepted|got) (?:the |an? )?(?:(.+?) )?(?:offer|job|role|position) (?:at|with) ($NAME)$STOP") to
-            { m -> m.groupValues[1].ifBlank { null } to m.groupValues[2] },
+                { m -> m.groupValues[1].ifBlank { null } to m.groupValues[2] },
         Regex("(?:is now|now works as|became|has become|started as|promoted to|moving to be) (?:the |an? )?([A-Z].*?) at ($NAME)$STOP") to
-            { m -> m.groupValues[1] to m.groupValues[2] },
+                { m -> m.groupValues[1] to m.groupValues[2] },
         Regex("joined ($NAME) as (?:the |an? )?(.+?)$STOP") to
-            { m -> m.groupValues[2] to m.groupValues[1] },
+                { m -> m.groupValues[2] to m.groupValues[1] },
         Regex("new (?:job|role|position) at ($NAME)$STOP") to
-            { m -> null to m.groupValues[1] },
+                { m -> null to m.groupValues[1] },
     )
 
     private val introPattern =
@@ -36,10 +36,10 @@ object NoteAnalyzer {
         val firstNameCounts = contacts.groupingBy { it.firstName.lowercase() }.eachCount()
         return contacts.filter { c ->
             c.id !in excludeIds && c.name.isNotBlank() && (
-                containsWord(note, c.name, ignoreCase = true) ||
-                    (c.name.contains(' ') && c.firstName.length >= 3 && firstNameCounts[c.firstName.lowercase()] == 1 &&
-                        containsWord(note, c.firstName, ignoreCase = false))
-                )
+                    containsWord(note, c.name, ignoreCase = true) ||
+                            (c.name.contains(' ') && c.firstName.length >= 3 && firstNameCounts[c.firstName.lowercase()] == 1 &&
+                                    containsWord(note, c.firstName, ignoreCase = false))
+                    )
         }.map { Mention(it.id, it.name) }
     }
 
@@ -50,7 +50,11 @@ object NoteAnalyzer {
             val (role, company) = extract(match)
             val cleanRole = role?.trim()?.removeSuffix(" offer")?.ifBlank { null }
             val cleanCompany = company.trim()
-            if (cleanCompany.equals(subject.company, ignoreCase = true) && cleanRole.equals(subject.role, ignoreCase = true)) return null
+            if (cleanCompany.equals(subject.company, ignoreCase = true) && cleanRole.equals(
+                    subject.role,
+                    ignoreCase = true
+                )
+            ) return null
             return RoleChange(subject.id, subject.name, cleanRole, cleanCompany)
         }
         return null
@@ -61,7 +65,12 @@ object NoteAnalyzer {
         return introPattern.findAll(note).mapNotNull { m ->
             val target = m.groupValues[1]
             val resolved = contacts.firstOrNull { it.name.equals(target, ignoreCase = true) }
-                ?: contacts.singleOrNull { it.firstName.equals(target.substringBefore(' '), ignoreCase = true) && it.id != subject.id }
+                ?: contacts.singleOrNull {
+                    it.firstName.equals(
+                        target.substringBefore(' '),
+                        ignoreCase = true
+                    ) && it.id != subject.id
+                }
             "Intro ${subject.firstName} → ${resolved?.name ?: target}"
         }.distinct().toList()
     }
