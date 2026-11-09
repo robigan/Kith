@@ -1,6 +1,6 @@
 import EventKit
 import Foundation
-import TheRealDex
+import SharedLogic
 
 /// Reads recent meetings from the calendars on this iPhone, including Google accounts (FR-063).
 enum CalendarImporter {

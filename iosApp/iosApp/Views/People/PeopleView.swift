@@ -1,5 +1,5 @@
 import SwiftUI
-import TheRealDex
+import SharedLogic
 
 /// People tab (FR-020…FR-026).
 struct PeopleView: View {

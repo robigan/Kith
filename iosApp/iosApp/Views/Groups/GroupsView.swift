@@ -1,5 +1,5 @@
 import SwiftUI
-import TheRealDex
+import SharedLogic
 import UniformTypeIdentifiers
 
 /// Groups tab: groups, smart views and sources (FR-050…FR-055).

@@ -1,5 +1,5 @@
 import SwiftUI
-import TheRealDex
+import SharedLogic
 
 @main
 struct iOSApp: App {

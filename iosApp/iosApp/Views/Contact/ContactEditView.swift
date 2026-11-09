@@ -1,5 +1,5 @@
 import SwiftUI
-import TheRealDex
+import SharedLogic
 
 /// Add / edit contact (FR-070…FR-072).
 struct ContactEditView: View {

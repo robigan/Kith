@@ -1,5 +1,5 @@
 import SwiftUI
-import TheRealDex
+import SharedLogic
 
 /// Today tab (FR-010…FR-019).
 struct TodayView: View {

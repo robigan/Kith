@@ -1,5 +1,5 @@
 import SwiftUI
-import TheRealDex
+import SharedLogic
 
 /// Create or edit a smart view's criteria (FR-054). Every enabled criterion must match.
 struct SmartViewEditor: View {

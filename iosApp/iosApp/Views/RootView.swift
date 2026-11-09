@@ -1,5 +1,5 @@
 import SwiftUI
-import TheRealDex
+import SharedLogic
 
 enum AppTab: Hashable { case today, people, groups }
 

@@ -1,5 +1,5 @@
 import Foundation
-import TheRealDex
+import SharedLogic
 import UserNotifications
 
 /// Mirrors the shared module's planned reminders into local notifications at 9:00 on the due date (FR-006).

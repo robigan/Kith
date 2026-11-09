@@ -1,5 +1,5 @@
 import SwiftUI
-import TheRealDex
+import SharedLogic
 
 /// Log interaction sheet (FR-040…FR-048).
 struct LogInteractionView: View {

@@ -1,6 +1,6 @@
 import SwiftUI
 import UIKit
-import TheRealDex
+import SharedLogic
 
 extension UIColor {
     convenience init(hex: UInt32, alpha: CGFloat = 1) {

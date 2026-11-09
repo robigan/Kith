@@ -1,5 +1,5 @@
 import SwiftUI
-import TheRealDex
+import SharedLogic
 
 /// Contact profile (FR-030…FR-037).
 struct ProfileView: View {

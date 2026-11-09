@@ -1,5 +1,5 @@
 import SwiftUI
-import TheRealDex
+import SharedLogic
 
 struct GroupDetailView: View {
     @State private var screen: Screen<GroupDetailViewModel, GroupDetailState>

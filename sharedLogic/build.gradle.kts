@@ -10,7 +10,7 @@ kotlin {
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
-            baseName = "TheRealDex"
+            baseName = "SharedLogic"
             isStatic = true
             binaryOption("bundleId", "com.robigan.TheRealDex.shared")
         }

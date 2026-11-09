@@ -1,11 +1,11 @@
 import Observation
-import TheRealDex
+import SharedLogic
 
 /// Owns a shared Kotlin view model and mirrors its StateFlow into SwiftUI.
 /// SKIE exposes the flow as an AsyncSequence; `run()` is driven by a view's `.task`, so collection stops with the view.
 @MainActor
 @Observable
-final class Screen<VM: TheRealDex.ViewModel, State> {
+final class Screen<VM: SharedLogic.ViewModel, State> {
     let vm: VM
     private(set) var state: State
     @ObservationIgnored private let flow: SkieSwiftStateFlow<State>

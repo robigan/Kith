@@ -1,6 +1,6 @@
 import Contacts
 import Foundation
-import TheRealDex
+import SharedLogic
 
 enum ImportError: LocalizedError {
     case denied(String)

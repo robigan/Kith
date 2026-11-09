@@ -1,5 +1,5 @@
 import SwiftUI
-import TheRealDex
+import SharedLogic
 
 struct AvatarView: View {
     let avatar: Avatar
