@@ -1,0 +1,126 @@
+-- Logged or imported touchpoints. origin is an InteractionOrigin name; externalId de-duplicates imports.
+CREATE TABLE InteractionRecord (
+    id TEXT NOT NULL PRIMARY KEY,
+    type TEXT NOT NULL,
+    date INTEGER NOT NULL,
+    title TEXT,
+    note TEXT NOT NULL DEFAULT '',
+    origin TEXT NOT NULL,
+    externalId TEXT UNIQUE,
+    location TEXT,
+    durationMinutes INTEGER,
+    createdAt INTEGER NOT NULL
+);
+
+CREATE TABLE InteractionParticipantRecord (
+    interactionId TEXT NOT NULL,
+    contactId TEXT NOT NULL,
+    PRIMARY KEY (interactionId, contactId)
+);
+
+CREATE TABLE FollowUpRecord (
+    id TEXT NOT NULL PRIMARY KEY,
+    contactId TEXT NOT NULL,
+    interactionId TEXT,
+    text TEXT NOT NULL,
+    done INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL
+);
+
+CREATE INDEX interaction_date ON InteractionRecord(date);
+CREATE INDEX participant_contact ON InteractionParticipantRecord(contactId);
+CREATE INDEX followup_contact ON FollowUpRecord(contactId);
+
+selectById:
+SELECT * FROM InteractionRecord WHERE id = ?;
+
+selectByExternalId:
+SELECT * FROM InteractionRecord WHERE externalId = ?;
+
+selectForContact:
+SELECT i.* FROM InteractionRecord i
+JOIN InteractionParticipantRecord p ON p.interactionId = i.id
+WHERE p.contactId = ?
+ORDER BY i.date DESC, i.createdAt DESC;
+
+-- Latest interaction per contact; drives cadence due dates.
+-- Imported calendar meetings only count once they have a note ("Needs a note" until then).
+selectLastPerContact:
+SELECT p.contactId, max(i.date) AS lastDate
+FROM InteractionParticipantRecord p
+JOIN InteractionRecord i ON i.id = p.interactionId
+WHERE (i.origin != 'CALENDAR' OR trim(i.note) != '')
+GROUP BY p.contactId;
+
+selectLatestForContact:
+SELECT i.* FROM InteractionRecord i
+JOIN InteractionParticipantRecord p ON p.interactionId = i.id
+WHERE p.contactId = ? AND (i.origin != 'CALENDAR' OR trim(i.note) != '')
+ORDER BY i.date DESC, i.createdAt DESC
+LIMIT 1;
+
+countByOriginForContact:
+SELECT i.origin, count(*) AS total FROM InteractionRecord i
+JOIN InteractionParticipantRecord p ON p.interactionId = i.id
+WHERE p.contactId = ?
+GROUP BY i.origin;
+
+-- Imported meetings that still have no note.
+selectUnnotedSince:
+SELECT * FROM InteractionRecord
+WHERE origin = ? AND trim(note) = '' AND date >= ? AND date <= ?
+ORDER BY date DESC;
+
+selectAllParticipants:
+SELECT * FROM InteractionParticipantRecord;
+
+selectParticipants:
+SELECT contactId FROM InteractionParticipantRecord WHERE interactionId = ?;
+
+searchNotes:
+SELECT DISTINCT p.contactId FROM InteractionRecord i
+JOIN InteractionParticipantRecord p ON p.interactionId = i.id
+WHERE i.note LIKE ('%' || :query || '%') OR i.title LIKE ('%' || :query || '%');
+
+insert:
+INSERT INTO InteractionRecord(id, type, date, title, note, origin, externalId, location, durationMinutes, createdAt)
+VALUES ?;
+
+update:
+UPDATE InteractionRecord SET type = ?, date = ?, note = ? WHERE id = ?;
+
+updateImported:
+UPDATE InteractionRecord SET title = ?, date = ?, location = ?, durationMinutes = ? WHERE id = ?;
+
+delete:
+DELETE FROM InteractionRecord WHERE id = ?;
+
+insertParticipant:
+INSERT OR IGNORE INTO InteractionParticipantRecord(interactionId, contactId) VALUES (?, ?);
+
+deleteParticipants:
+DELETE FROM InteractionParticipantRecord WHERE interactionId = ?;
+
+deleteParticipationsOfContact:
+DELETE FROM InteractionParticipantRecord WHERE contactId = ?;
+
+-- Interactions left without participants after a contact is deleted.
+deleteOrphans:
+DELETE FROM InteractionRecord WHERE id NOT IN (SELECT interactionId FROM InteractionParticipantRecord);
+
+-- Follow-ups
+
+selectFollowUps:
+SELECT * FROM FollowUpRecord WHERE contactId = ? ORDER BY done, createdAt DESC;
+
+insertFollowUp:
+INSERT INTO FollowUpRecord(id, contactId, interactionId, text, done, createdAt) VALUES (?, ?, ?, ?, 0, ?);
+
+setFollowUpDone:
+UPDATE FollowUpRecord SET done = ? WHERE id = ?;
+
+deleteFollowUp:
+DELETE FROM FollowUpRecord WHERE id = ?;
+
+deleteFollowUpsOfContact:
+DELETE FROM FollowUpRecord WHERE contactId = ?;

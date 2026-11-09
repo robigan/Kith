@@ -1,0 +1,131 @@
+-- People. Dates are stored as epoch days; cadence is a Cadence.code (NULL inherits from groups).
+CREATE TABLE ContactRecord (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    role TEXT,
+    company TEXT,
+    location TEXT,
+    relationship TEXT,
+    howWeMet TEXT,
+    metOn INTEGER,
+    family TEXT,
+    birthdayMonth INTEGER,
+    birthdayDay INTEGER,
+    birthdayYear INTEGER,
+    workHistory TEXT,
+    email TEXT,
+    phone TEXT,
+    tint TEXT NOT NULL,
+    starred INTEGER NOT NULL DEFAULT 0,
+    cadence TEXT,
+    dueOverride INTEGER,
+    createdOn INTEGER NOT NULL
+);
+
+CREATE TABLE ContactTagRecord (
+    contactId TEXT NOT NULL,
+    tag TEXT NOT NULL,
+    PRIMARY KEY (contactId, tag)
+);
+
+CREATE TABLE GiftIdeaRecord (
+    id TEXT NOT NULL PRIMARY KEY,
+    contactId TEXT NOT NULL,
+    text TEXT NOT NULL,
+    position INTEGER NOT NULL
+);
+
+CREATE TABLE ImportantDateRecord (
+    id TEXT NOT NULL PRIMARY KEY,
+    contactId TEXT NOT NULL,
+    label TEXT NOT NULL,
+    month INTEGER NOT NULL,
+    day INTEGER NOT NULL,
+    year INTEGER
+);
+
+CREATE INDEX contact_name ON ContactRecord(name COLLATE NOCASE);
+CREATE INDEX gift_contact ON GiftIdeaRecord(contactId);
+CREATE INDEX date_contact ON ImportantDateRecord(contactId);
+
+selectAll:
+SELECT * FROM ContactRecord ORDER BY name COLLATE NOCASE;
+
+selectById:
+SELECT * FROM ContactRecord WHERE id = ?;
+
+selectByEmail:
+SELECT * FROM ContactRecord WHERE lower(email) = lower(?) LIMIT 1;
+
+selectByPhone:
+SELECT * FROM ContactRecord WHERE phone = ? LIMIT 1;
+
+selectByName:
+SELECT * FROM ContactRecord WHERE lower(name) = lower(?) LIMIT 1;
+
+count:
+SELECT count(*) FROM ContactRecord;
+
+insert:
+INSERT INTO ContactRecord(id, name, role, company, location, relationship, howWeMet, metOn, family,
+    birthdayMonth, birthdayDay, birthdayYear, workHistory, email, phone, tint, starred, cadence, dueOverride, createdOn)
+VALUES ?;
+
+update:
+UPDATE ContactRecord SET name = ?, role = ?, company = ?, location = ?, relationship = ?, howWeMet = ?, metOn = ?,
+    family = ?, birthdayMonth = ?, birthdayDay = ?, birthdayYear = ?, workHistory = ?, email = ?, phone = ?, cadence = ?
+WHERE id = ?;
+
+updateRole:
+UPDATE ContactRecord SET role = ?, company = ?, workHistory = ? WHERE id = ?;
+
+setStarred:
+UPDATE ContactRecord SET starred = ? WHERE id = ?;
+
+setCadence:
+UPDATE ContactRecord SET cadence = ?, dueOverride = NULL WHERE id = ?;
+
+setDueOverride:
+UPDATE ContactRecord SET dueOverride = ? WHERE id = ?;
+
+delete:
+DELETE FROM ContactRecord WHERE id = ?;
+
+-- Tags
+
+selectAllTags:
+SELECT * FROM ContactTagRecord;
+
+selectTags:
+SELECT tag FROM ContactTagRecord WHERE contactId = ? ORDER BY tag;
+
+insertTag:
+INSERT OR IGNORE INTO ContactTagRecord(contactId, tag) VALUES (?, ?);
+
+deleteTags:
+DELETE FROM ContactTagRecord WHERE contactId = ?;
+
+-- Gift ideas
+
+selectAllGifts:
+SELECT * FROM GiftIdeaRecord ORDER BY contactId, position;
+
+selectGifts:
+SELECT * FROM GiftIdeaRecord WHERE contactId = ? ORDER BY position;
+
+insertGift:
+INSERT INTO GiftIdeaRecord(id, contactId, text, position) VALUES (?, ?, ?, ?);
+
+deleteGifts:
+DELETE FROM GiftIdeaRecord WHERE contactId = ?;
+
+-- Important dates
+
+selectDates:
+SELECT * FROM ImportantDateRecord WHERE contactId = ? ORDER BY month, day;
+
+insertDate:
+INSERT INTO ImportantDateRecord(id, contactId, label, month, day, year) VALUES (?, ?, ?, ?, ?, ?);
+
+deleteDates:
+DELETE FROM ImportantDateRecord WHERE contactId = ?;

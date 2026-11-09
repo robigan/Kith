@@ -1,0 +1,44 @@
+CREATE TABLE GroupRecord (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    cadence TEXT,
+    createdOn INTEGER NOT NULL
+);
+
+CREATE TABLE GroupMemberRecord (
+    groupId TEXT NOT NULL,
+    contactId TEXT NOT NULL,
+    PRIMARY KEY (groupId, contactId)
+);
+
+CREATE INDEX member_contact ON GroupMemberRecord(contactId);
+
+selectAll:
+SELECT * FROM GroupRecord ORDER BY createdOn, name COLLATE NOCASE;
+
+selectById:
+SELECT * FROM GroupRecord WHERE id = ?;
+
+insert:
+INSERT INTO GroupRecord(id, name, cadence, createdOn) VALUES (?, ?, ?, ?);
+
+update:
+UPDATE GroupRecord SET name = ?, cadence = ? WHERE id = ?;
+
+delete:
+DELETE FROM GroupRecord WHERE id = ?;
+
+selectAllMembers:
+SELECT * FROM GroupMemberRecord;
+
+insertMember:
+INSERT OR IGNORE INTO GroupMemberRecord(groupId, contactId) VALUES (?, ?);
+
+deleteMember:
+DELETE FROM GroupMemberRecord WHERE groupId = ? AND contactId = ?;
+
+deleteMembersOfGroup:
+DELETE FROM GroupMemberRecord WHERE groupId = ?;
+
+deleteMembershipsOfContact:
+DELETE FROM GroupMemberRecord WHERE contactId = ?;

@@ -1,0 +1,39 @@
+-- Saved filters. Every non-null criterion must match (AND).
+CREATE TABLE SmartViewRecord (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    code TEXT NOT NULL,
+    tint TEXT NOT NULL,
+    tag TEXT,
+    groupId TEXT,
+    minDaysSinceContact INTEGER,
+    location TEXT,
+    source TEXT,
+    birthdayThisMonth INTEGER NOT NULL DEFAULT 0,
+    changedJobsWithinDays INTEGER,
+    metContext TEXT,
+    position INTEGER NOT NULL
+);
+
+selectAll:
+SELECT * FROM SmartViewRecord ORDER BY position;
+
+selectById:
+SELECT * FROM SmartViewRecord WHERE id = ?;
+
+nextPosition:
+SELECT coalesce(max(position), -1) + 1 FROM SmartViewRecord;
+
+insert:
+INSERT INTO SmartViewRecord VALUES ?;
+
+update:
+UPDATE SmartViewRecord SET name = ?, code = ?, tint = ?, tag = ?, groupId = ?, minDaysSinceContact = ?, location = ?,
+    source = ?, birthdayThisMonth = ?, changedJobsWithinDays = ?, metContext = ?
+WHERE id = ?;
+
+delete:
+DELETE FROM SmartViewRecord WHERE id = ?;
+
+clearGroup:
+UPDATE SmartViewRecord SET groupId = NULL WHERE groupId = ?;

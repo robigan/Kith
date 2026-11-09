@@ -1,0 +1,45 @@
+-- Connected data providers (SourceProvider names) and which contacts each one contributed to.
+CREATE TABLE SourceConnectionRecord (
+    provider TEXT NOT NULL PRIMARY KEY,
+    connected INTEGER NOT NULL DEFAULT 0,
+    lastSyncAt INTEGER
+);
+
+-- lastRole/lastCompany remember what the provider reported last time, to detect job changes.
+CREATE TABLE ContactSourceRecord (
+    contactId TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    externalId TEXT,
+    lastRole TEXT,
+    lastCompany TEXT,
+    PRIMARY KEY (contactId, provider)
+);
+
+CREATE INDEX contact_source_external ON ContactSourceRecord(provider, externalId);
+
+selectConnections:
+SELECT * FROM SourceConnectionRecord;
+
+upsertConnection:
+INSERT OR REPLACE INTO SourceConnectionRecord(provider, connected, lastSyncAt) VALUES (?, ?, ?);
+
+selectAllContactSources:
+SELECT * FROM ContactSourceRecord;
+
+selectSourcesForContact:
+SELECT * FROM ContactSourceRecord WHERE contactId = ?;
+
+selectByExternalId:
+SELECT * FROM ContactSourceRecord WHERE provider = ? AND externalId = ? LIMIT 1;
+
+selectForContactAndProvider:
+SELECT * FROM ContactSourceRecord WHERE contactId = ? AND provider = ?;
+
+upsertContactSource:
+INSERT OR REPLACE INTO ContactSourceRecord(contactId, provider, externalId, lastRole, lastCompany) VALUES (?, ?, ?, ?, ?);
+
+deleteSourcesOfContact:
+DELETE FROM ContactSourceRecord WHERE contactId = ?;
+
+deleteSourcesOfProvider:
+DELETE FROM ContactSourceRecord WHERE provider = ?;

@@ -10,14 +10,17 @@ kotlin {
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
-            baseName = "SharedLogic"
+            baseName = "TheRealDex"
             isStatic = true
+            binaryOption("bundleId", "com.robigan.TheRealDex.shared")
         }
     }
     sourceSets {
         all {
             languageSettings.optIn("kotlin.time.ExperimentalTime")
             languageSettings.optIn("kotlin.uuid.ExperimentalUuidApi")
+            languageSettings.optIn("kotlinx.coroutines.ExperimentalCoroutinesApi")
+            languageSettings.optIn("kotlinx.coroutines.FlowPreview")
         }
         iosMain.dependencies {
             implementation(libs.sqldelight.nativeDriver)
@@ -39,7 +42,7 @@ kotlin {
 sqldelight {
     databases {
         register("DexDatabase") {
-            packageName.set("com.robigan.db")
+            packageName.set("com.robigan.TheRealDex.db")
         }
     }
 }

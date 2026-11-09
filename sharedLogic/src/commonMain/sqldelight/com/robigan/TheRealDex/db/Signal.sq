@@ -1,0 +1,30 @@
+-- Stored signals (e.g. job changes from LinkedIn). Birthdays, anniversaries and un-noted meetings are
+-- computed on the fly; any signal can be dismissed by key.
+CREATE TABLE SignalRecord (
+    id TEXT NOT NULL PRIMARY KEY,
+    type TEXT NOT NULL,
+    contactId TEXT NOT NULL,
+    date INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    source TEXT,
+    externalKey TEXT UNIQUE
+);
+
+CREATE TABLE DismissedSignalRecord (
+    key TEXT NOT NULL PRIMARY KEY
+);
+
+selectAll:
+SELECT * FROM SignalRecord ORDER BY date DESC;
+
+insert:
+INSERT OR IGNORE INTO SignalRecord(id, type, contactId, date, text, source, externalKey) VALUES (?, ?, ?, ?, ?, ?, ?);
+
+deleteForContact:
+DELETE FROM SignalRecord WHERE contactId = ?;
+
+selectDismissed:
+SELECT key FROM DismissedSignalRecord;
+
+dismiss:
+INSERT OR IGNORE INTO DismissedSignalRecord(key) VALUES (?);

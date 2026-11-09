@@ -1,0 +1,10 @@
+CREATE TABLE SettingRecord (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+select:
+SELECT value FROM SettingRecord WHERE key = ?;
+
+put:
+INSERT OR REPLACE INTO SettingRecord(key, value) VALUES (?, ?);

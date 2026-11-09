@@ -4,5 +4,15 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSContactsUsageDescription</key>
+	<string>Import people from your address book so you can keep in touch with them.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Find recent meetings with your contacts so you can add notes and keep reminders accurate.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Scan business cards to add new contacts.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Dictate notes about your conversations.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Turn your dictated notes into text.</string>
 </dict>
 </plist>
